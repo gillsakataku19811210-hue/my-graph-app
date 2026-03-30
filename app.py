@@ -1,9 +1,3 @@
-グラフの表示領域（縦幅）を広げるために、Plotlyのレイアウト設定に height=800（通常の約2倍の高さ）を追加しました。
-
-これにより、14日間の細かな推移や、アウト30,000・玉粗利0の基準線との高低差がよりダイナミックに、はっきりと確認できるようになります。
-
-修正版：app.py（これをコピーしてGitHubに上書きしてください）
-Python
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
