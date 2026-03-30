@@ -1,9 +1,15 @@
+グラフの表示領域（縦幅）を広げるために、Plotlyのレイアウト設定に height=800（通常の約2倍の高さ）を追加しました。
+
+これにより、14日間の細かな推移や、アウト30,000・玉粗利0の基準線との高低差がよりダイナミックに、はっきりと確認できるようになります。
+
+修正版：app.py（これをコピーしてGitHubに上書きしてください）
+Python
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
 # 画面の設定
-st.set_page_config(page_title="機種分析アプリ(センター同期版)", layout="wide")
+st.set_page_config(page_title="機種分析アプリ(高解像度版)", layout="wide")
 st.title("📊 パチンコ・パチスロ 14日間トレンド分析")
 
 # ファイルの読み込み
@@ -36,7 +42,7 @@ if uploaded_file:
             # --- 指標の計算 ---
             df['アウト'] = df['稼働時間'] * 6000
             
-            # 玉粗利の計算（粗利 / アウト）
+            # 玉粗利の計算
             df['玉粗利'] = df.apply(lambda x: x['粗利金額'] / x['アウト'] if x['アウト'] > 0 else 0, axis=1)
             
             # 14日間移動平均
@@ -70,16 +76,17 @@ if uploaded_file:
                 yaxis="y2"
             ))
 
-            # レイアウト調整
+            # レイアウト調整（heightを800に設定して縦長に）
             fig.update_layout(
                 title=f"【{days}日間移動平均】稼働3万・粗利0同期グラフ",
                 xaxis_title="日付",
+                height=800,  # ← 縦幅を大きく設定
                 # 左軸：アウト（0〜60,000）
                 yaxis=dict(
                     title="アウト / 売上 (円)",
                     side="left",
                     range=[0, 60000], 
-                    dtick=10000,
+                    dtick=5000, # 縦幅が広がったので目盛りを細かく(5000刻み)設定
                     gridcolor='lightgrey'
                 ),
                 # 右軸：玉粗利（-6〜6）
@@ -88,11 +95,11 @@ if uploaded_file:
                     overlaying='y',
                     side='right',
                     range=[-6, 6],
-                    dtick=2,
-                    showgrid=True, # グリッドを表示して同期を確認しやすく
-                    gridcolor='rgba(200, 200, 200, 0.3)',
+                    dtick=1, # 1円刻みに変更
+                    showgrid=True,
+                    gridcolor='rgba(200, 200, 200, 0.2)',
                     zeroline=True,
-                    zerolinecolor='black', # 0のライン（＝アウト3万ライン）を黒く強調
+                    zerolinecolor='black',
                     zerolinewidth=3,
                     tickformat=".2f"
                 ),
@@ -102,7 +109,7 @@ if uploaded_file:
             )
 
             st.plotly_chart(fig, use_container_width=True)
-            st.info("💡 グラフ中央の太い黒線が「アウト30,000」かつ「玉粗利0」のラインです。")
+            st.info("💡 グラフの縦幅を広げ、目盛りを細かく調整しました。")
             
         else:
             st.error("必要な項目が見つかりません。")
