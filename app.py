@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # 画面の設定
-st.set_page_config(page_title="機種分析アプリ", layout="wide")
+st.set_page_config(page_title="機種分析アプリ(玉粗利版)", layout="wide")
 st.title("📊 パチンコ・パチスロ 14日間トレンド分析")
 
 # ファイルの読み込み
@@ -33,14 +33,17 @@ if uploaded_file:
             for col in target_cols:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
             
-            # ① アウトの計算
+            # --- 指標の計算 ---
             df['アウト'] = df['稼働時間'] * 6000
             
-            # --- 14日間移動平均に変更 ---
+            # 【重要】玉粗利の計算（粗利 / アウト） ※アウトが0の場合は0にする
+            df['玉粗利'] = df.apply(lambda x: x['粗利金額'] / x['アウト'] if x['アウト'] > 0 else 0, axis=1)
+            
+            # 14日間移動平均
             days = 14
             df['アウト_MA'] = df['アウト'].rolling(window=days, min_periods=1).mean()
             df['売上_MA'] = df['売上金額'].rolling(window=days, min_periods=1).mean()
-            df['粗利_MA'] = df['粗利金額'].rolling(window=days, min_periods=1).mean()
+            df['玉粗利_MA'] = df['玉粗利'].rolling(window=days, min_periods=1).mean()
 
             # --- グラフの作成 ---
             fig = go.Figure()
@@ -59,17 +62,17 @@ if uploaded_file:
                 line=dict(color='#2ca02c', width=2, dash='dot')
             ))
 
-            # 粗利（赤・太線）：右軸
+            # 玉粗利（赤・実線）：右軸
             fig.add_trace(go.Scatter(
-                x=df['日付'], y=df['粗利_MA'], 
-                name=f'粗利({days}日平均)', 
-                line=dict(color='#d62728', width=4), 
+                x=df['日付'], y=df['玉粗利_MA'], 
+                name=f'玉粗利({days}日平均)', 
+                line=dict(color='#d62728', width=3), 
                 yaxis="y2"
             ))
 
-            # レイアウト調整（見やすさ重視）
+            # レイアウト調整
             fig.update_layout(
-                title=f"【{days}日間移動平均】稼働・収益推移",
+                title=f"【{days}日間移動平均】稼働・売上・玉粗利 推移",
                 xaxis_title="日付",
                 yaxis=dict(
                     title="アウト / 売上 (円)",
@@ -77,23 +80,27 @@ if uploaded_file:
                     gridcolor='lightgrey'
                 ),
                 yaxis2=dict(
-                    title="粗利 (円)",
+                    title="玉粗利 (円)",
                     overlaying='y',
                     side='right',
                     showgrid=False,
-                    zeroline=True, # 0の線を強調（赤字かどうかの境目）
+                    zeroline=True,
                     zerolinecolor='black',
-                    zerolinewidth=2
+                    zerolinewidth=2,
+                    tickformat=".2f" # 小数点第2位まで表示
                 ),
                 hovermode="x unified",
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                plot_bgcolor='white' # 背景を白くして見やすく
+                plot_bgcolor='white'
             )
 
             st.plotly_chart(fig, use_container_width=True)
-            st.success(f"{days}日移動平均でグラフを作成しました。")
+            
+            # 確認用データテーブル
+            st.write("直近の計算値（玉粗利）")
+            st.dataframe(df[['日付', 'アウト', '粗利金額', '玉粗利']].tail(5))
             
         else:
-            st.error("必要な項目（稼働時間、売上、粗利）がExcelに見つかりません。")
+            st.error("必要な項目が見つかりません。")
     else:
-        st.error("Excelの中に『日付』という項目が見つかりませんでした。")
+        st.error("Excelの中に『日付』が見つかりませんでした。")
